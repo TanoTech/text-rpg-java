@@ -170,13 +170,11 @@ public class SQLiteCharacterRepository implements CharacterRepository {
     }
 
     private void saveEquipment(Connection conn, Character character) throws SQLException {
-        // Clear existing equipment
         try (PreparedStatement stmt = conn.prepareStatement("DELETE FROM equipment WHERE character_name = ?")) {
             stmt.setString(1, character.getName());
             stmt.executeUpdate();
         }
 
-        // Insert current equipment
         String sql = """
                 INSERT INTO equipment (character_name, slot, item_name, item_type, value, attack_bonus, defense_bonus)
                 VALUES (?, ?, ?, ?, ?, ?, ?)""";
