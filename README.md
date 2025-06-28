@@ -1,6 +1,6 @@
 # Text-RPG-Game in Java
 
-Ho sviluppato un semplicissimo gioco con funzionalità base da terminale,
+Ho sviluppato un gioco con funzionalità base da terminale,
 
 abbiamo la possibilità di creare nuovi personaggi, salvare le partite, accedere ad uno shop per vendere o comprare equipaggiamento,
 
@@ -13,8 +13,6 @@ Il codice utilizza repository per la comunicazione con il database e service dov
 Lo shop genera in base al livello del personaggio giocante vari pezzi di armatura e armi in modo da avere ad ogni accesso set di equipaggiamento sempre diversi.
 
 L'utente può creare nuovi personaggi, scegliere la classe e ho implementato i controlli per gli input testuali in modo da non creare duplicati di nomi.
-
-Le feature sono abbastanza limitate all'economia, alle missioni e al salvare/cancellare/caricare/creare nuove partite per nuovi personaggi.
 
 Ho seguito una struttura folder e naming utilizzando le best pratices attuali, utilizzando Maven per la gestione delle dipendenze, e dividendo all'interno di src la parte di codice e di testing.
 
@@ -54,6 +52,75 @@ Ho seguito una struttura folder e naming utilizzando le best pratices attuali, u
 
      Il codice è organizzato in package funzionali: character, equipment, missions, service, repository, exceptions, mantenendo alta coesione e basso accoppiamento.
 
+```bash
+src
+│   ├── main
+│   │   ├── java
+│   │   │   └── com
+│   │   │       └── rpg
+│   │   │           ├── Main.java
+│   │   │           ├── character
+│   │   │           │   ├── Character.java
+│   │   │           │   └── CharacterType.java
+│   │   │           ├── core
+│   │   │           │   └── GameEngine.java
+│   │   │           ├── equipment
+│   │   │           │   ├── Equipment.java
+│   │   │           │   ├── EquipmentComponent.java
+│   │   │           │   ├── EquipmentSet.java
+│   │   │           │   ├── EquipmentSlot.java
+│   │   │           │   ├── SingleEquipment.java
+│   │   │           │   └── items
+│   │   │           │       ├── Armor.java
+│   │   │           │       └── Weapon.java
+│   │   │           ├── exceptions
+│   │   │           │   ├── DatabaseException.java
+│   │   │           │   ├── ExceptionShield.java
+│   │   │           │   ├── GameException.java
+│   │   │           │   ├── ShieldedFunction.java
+│   │   │           │   ├── ShieldedOperation.java
+│   │   │           │   └── ValidationException.java
+│   │   │           ├── logging
+│   │   │           │   └── GameLogger.java
+│   │   │           ├── missions
+│   │   │           │   ├── Mission.java
+│   │   │           │   ├── MissionCollection.java
+│   │   │           │   ├── MissionManager.java
+│   │   │           │   └── MissionType.java
+│   │   │           ├── repository
+│   │   │           │   ├── CharacterRepository.java
+│   │   │           │   └── impl
+│   │   │           │       └── SQLiteCharacterRepository.java
+│   │   │           ├── service
+│   │   │           │   ├── CharacterService.java
+│   │   │           │   ├── GameService.java
+│   │   │           │   ├── ServiceFactory.java
+│   │   │           │   ├── ShopService.java
+│   │   │           │   └── impl
+│   │   │           │       ├── CharacterServiceImpl.java
+│   │   │           │       ├── GameServiceImpl.java
+│   │   │           │       └── ShopServiceImpl.java
+│   │   │           ├── ui
+│   │   │           │   └── GameMenu.java
+│   │   │           └── validation
+│   │   │               └── InputValidator.java
+│   │   └── resources
+│   │       └── sqlite
+│   │           └── rpg_game.db
+│   └── test
+│       └── java
+│           └── com
+│               └── rpg
+│                   ├── character
+│                   │   └── CharacterTest.java
+│                   ├── missions
+│                   │   └── MissionTest.java
+│                   └── service
+│                       ├── CharacterTest.java
+│                       ├── GameTest.java
+│                       └── ShopTest.java
+```
+
 ## 4. Principi SOLID
 
       Single Responsibility - Ogni classe ha una responsabilità specifica.
@@ -66,12 +133,12 @@ Ho seguito una struttura folder e naming utilizzando le best pratices attuali, u
 
 ## 5. Sicurezza
 
-Validazione Input: Regex per nomi personaggio.
+     Validazione Input: Regex per nomi personaggio.
 
-Separazione Errori:
+      Separazione Errori:
 
-      Messaggi utente comprensibili
+        Messaggi utente comprensibili
 
-      Dettagli tecnici solo nei log 
+        Dettagli tecnici solo nei log 
 
-      Nessun dato sensibile nei log
+        Nessun dato sensibile nei log
