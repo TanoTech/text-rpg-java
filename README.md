@@ -48,6 +48,8 @@ Ho seguito una struttura folder e naming utilizzando le best pratices attuali, u
      
      Observer: Logging centralizzato (reazione a eventi).
 
+     ![Grafico](https://ibb.co/vx037dwm)
+
 ## 3. Struttura Modulare
 
      Il codice è organizzato in package funzionali: character, equipment, missions, service, repository, exceptions, mantenendo alta coesione e basso accoppiamento.
@@ -61,3 +63,15 @@ Ho seguito una struttura folder e naming utilizzando le best pratices attuali, u
       Dependency Inversion - Dipendenze da astrazioni, non implementazioni concrete.
 
       Interface Segregation - Interfacce specifiche per ogni servizio.
+
+## 5. Sicurezza
+
+Validazione Input: Regex per nomi personaggio.
+
+Separazione Errori:
+
+      Messaggi utente comprensibili
+
+      Dettagli tecnici solo nei log 
+
+      Nessun dato sensibile nei log
