@@ -1,5 +1,9 @@
 # Text-RPG-Game in Java
 
+![Java](https://img.shields.io/badge/Java-ED8B00?style=for-the-badge&logo=openjdk&logoColor=white)
+![Maven](https://img.shields.io/badge/Maven-C71A36?style=for-the-badge&logo=apachemaven&logoColor=white)
+![SQLite](https://img.shields.io/badge/SQLite-003B57?style=for-the-badge&logo=sqlite&logoColor=white)
+
 Ho sviluppato un gioco con funzionalità base da terminale,
 
 abbiamo la possibilità di creare nuovi personaggi, salvare le partite, accedere ad uno shop per vendere o comprare equipaggiamento,
