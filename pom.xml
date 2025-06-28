@@ -1,3 +1,4 @@
+<!-- pom.xml -->
 <project xmlns="http://maven.apache.org/POM/4.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
@@ -24,7 +25,6 @@
       <artifactId>slf4j-api</artifactId>
       <version>2.0.9</version>
     </dependency>
-    <!-- SLF4J Simple implementation at runtime -->
     <dependency>
       <groupId>org.slf4j</groupId>
       <artifactId>slf4j-simple</artifactId>
@@ -73,6 +73,13 @@
       <version>${mockito.version}</version>
       <scope>test</scope>
     </dependency>
+    <!-- Mockito + JUnit Jupiter integration -->
+    <dependency>
+      <groupId>org.mockito</groupId>
+      <artifactId>mockito-junit-jupiter</artifactId>
+      <version>${mockito.version}</version>
+      <scope>test</scope>
+    </dependency>
 
     <!-- Override Byte‑Buddy for JDK23 compatibility -->
     <dependency>
@@ -86,7 +93,7 @@
   <build>
     <pluginManagement>
       <plugins>
-        <!-- Tell Eclipse m2e to ignore the flyway:migrate execution -->
+        <!-- Tell Eclipse m2e to ignore flyway:migrate -->
         <plugin>
           <groupId>org.eclipse.m2e</groupId>
           <artifactId>lifecycle-mapping</artifactId>
@@ -99,13 +106,9 @@
                     <groupId>org.flywaydb</groupId>
                     <artifactId>flyway-maven-plugin</artifactId>
                     <versionRange>[${flyway.version},)</versionRange>
-                    <goals>
-                      <goal>migrate</goal>
-                    </goals>
+                    <goals><goal>migrate</goal></goals>
                   </pluginExecutionFilter>
-                  <action>
-                    <ignore />
-                  </action>
+                  <action><ignore/></action>
                 </pluginExecution>
               </pluginExecutions>
             </lifecycleMappingMetadata>
@@ -113,9 +116,8 @@
         </plugin>
       </plugins>
     </pluginManagement>
-
     <plugins>
-      <!-- Java compiler plugin -->
+      <!-- Java compiler -->
       <plugin>
         <artifactId>maven-compiler-plugin</artifactId>
         <version>3.11.0</version>
@@ -123,8 +125,7 @@
           <release>${maven.compiler.release}</release>
         </configuration>
       </plugin>
-
-      <!-- Flyway Maven plugin: apply migrations during process-resources, baseline existing schema -->
+      <!-- Flyway -->
       <plugin>
         <groupId>org.flywaydb</groupId>
         <artifactId>flyway-maven-plugin</artifactId>
@@ -133,42 +134,32 @@
           <execution>
             <id>flyway-migrate</id>
             <phase>process-resources</phase>
-            <goals>
-              <goal>migrate</goal>
-            </goals>
+            <goals><goal>migrate</goal></goals>
           </execution>
         </executions>
         <configuration>
           <url>jdbc:sqlite:${project.basedir}/data/rpg_game.db</url>
-          <locations>
-            <location>classpath:db/migration</location>
-          </locations>
+          <locations><location>classpath:db/migration</location></locations>
           <baselineOnMigrate>true</baselineOnMigrate>
         </configuration>
       </plugin>
-
-      <!-- Surefire plugin for running tests -->
+      <!-- Surefire -->
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-surefire-plugin</artifactId>
         <version>3.1.2</version>
         <configuration>
           <useModulePath>false</useModulePath>
-          <includes>
-            <include>**/*Test.java</include>
-          </includes>
+          <includes><include>**/*Test.java</include></includes>
           <argLine>-Dnet.bytebuddy.experimental=true</argLine>
         </configuration>
       </plugin>
-
-      <!-- Exec plugin to launch the app via mvn exec:java -->
+      <!-- Exec -->
       <plugin>
         <groupId>org.codehaus.mojo</groupId>
         <artifactId>exec-maven-plugin</artifactId>
         <version>3.1.0</version>
-        <configuration>
-          <mainClass>com.rpg.Main</mainClass>
-        </configuration>
+        <configuration><mainClass>com.rpg.Main</mainClass></configuration>
       </plugin>
     </plugins>
   </build>
