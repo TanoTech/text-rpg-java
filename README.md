@@ -48,7 +48,7 @@ Ho seguito una struttura folder e naming utilizzando le best pratices attuali, u
      
      Observer: Logging centralizzato (reazione a eventi).
 
-     ![Grafico](https://ibb.co/vx037dwm)
+     ![Grafico](https://i.ibb.co/LzVxLgk6/deepseek-mermaid-20250628-51d5d5.png)
 
 ## 3. Struttura Modulare
 
