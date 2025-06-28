@@ -34,6 +34,8 @@ Ho seguito una struttura folder e naming utilizzando le best pratices attuali, u
 
 ## 2. Design e Architettura
 
+![Grafico](https://i.ibb.co/LzVxLgk6/deepseek-mermaid-20250628-51d5d5.png)
+
      Singleton: GameLogger, ServiceFactory (gestione istanze uniche).
      
      Factory: CharacterType (creazione personaggi), ServiceFactory (generazione servizi).
@@ -47,8 +49,6 @@ Ho seguito una struttura folder e naming utilizzando le best pratices attuali, u
      Strategy: ExceptionShield (gestione errori personalizzabile).
      
      Observer: Logging centralizzato (reazione a eventi).
-
-     ![Grafico](https://i.ibb.co/LzVxLgk6/deepseek-mermaid-20250628-51d5d5.png)
 
 ## 3. Struttura Modulare
 
