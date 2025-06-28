@@ -1,37 +1,35 @@
 package com.rpg.core;
 
 import com.rpg.character.Character;
-import com.rpg.character.CharacterFactory;
-import com.rpg.database.GameDatabase;
 import com.rpg.exceptions.GameException;
 import com.rpg.exceptions.ExceptionShield;
 import com.rpg.logging.GameLogger;
-import com.rpg.missions.MissionManager;
-import com.rpg.shop.Shop;
+import com.rpg.missions.Mission;
+import com.rpg.service.CharacterService;
+import com.rpg.service.GameService;
+import com.rpg.service.ServiceFactory;
 import com.rpg.ui.GameMenu;
 import com.rpg.validation.InputValidator;
 
+import java.util.List;
 import java.util.Scanner;
 
 public class GameEngine {
     private static final GameLogger logger = GameLogger.getInstance();
     private final Scanner scanner;
-    private final GameDatabase database;
-    private final CharacterFactory characterFactory;
-    private final MissionManager missionManager;
-    private final Shop shop;
+    private final CharacterService characterService;
+    private final GameService gameService;
     private Character currentCharacter;
     private boolean running;
 
     public GameEngine() throws GameException {
         this.scanner = new Scanner(System.in);
-        this.database = new GameDatabase();
-        this.characterFactory = new CharacterFactory();
-        this.missionManager = new MissionManager();
-        this.shop = new Shop();
+        ServiceFactory serviceFactory = ServiceFactory.getInstance();
+        this.characterService = serviceFactory.getCharacterService();
+        this.gameService = serviceFactory.getGameService();
         this.running = false;
 
-        logger.info("Game Engine initialized");
+        logger.info("Game Engine initialized with services");
     }
 
     public void start() throws GameException {
@@ -126,15 +124,17 @@ public class GameEngine {
             default -> "Warrior";
         };
 
-        currentCharacter = characterFactory.createCharacter(characterClass, name);
-        logger.info("Created new character: " + name + " (" + characterClass + ")");
-
-        System.out.println("\nCharacter created successfully!");
-        mainGameLoop();
+        try {
+            currentCharacter = characterService.createCharacter(characterClass, name);
+            System.out.println("\nCharacter created successfully!");
+            mainGameLoop();
+        } catch (GameException e) {
+            System.out.println("Error creating character: " + e.getMessage());
+        }
     }
 
     private void loadGame() throws GameException {
-        var saves = database.getAllSaves();
+        List<String> saves = characterService.getAllSaves();
 
         if (saves.isEmpty()) {
             System.out.println("No saved games found.");
@@ -153,18 +153,17 @@ public class GameEngine {
         int saveIndex = Integer.parseInt(choice) - 1;
         String saveName = saves.get(saveIndex);
 
-        currentCharacter = database.loadCharacter(saveName);
-        if (currentCharacter != null) {
+        try {
+            currentCharacter = characterService.loadCharacter(saveName);
             System.out.println("Game loaded successfully!");
-            logger.info("Loaded character: " + saveName);
             mainGameLoop();
-        } else {
-            System.out.println("Failed to load game.");
+        } catch (GameException e) {
+            System.out.println("Failed to load game: " + e.getMessage());
         }
     }
 
     private void deleteSave() throws GameException {
-        var saves = database.getAllSaves();
+        List<String> saves = characterService.getAllSaves();
 
         if (saves.isEmpty()) {
             System.out.println("No saved games found.");
@@ -185,9 +184,12 @@ public class GameEngine {
 
         String confirm = getValidInput("Are you sure you want to delete '" + saveName + "'? (y/n): ", "[yn]");
         if (confirm.equals("y")) {
-            database.deleteSave(saveName);
-            System.out.println("Save deleted successfully.");
-            logger.info("Deleted save: " + saveName);
+            boolean deleted = characterService.deleteSave(saveName);
+            if (deleted) {
+                System.out.println("Save deleted successfully.");
+            } else {
+                System.out.println("Failed to delete save.");
+            }
         }
     }
 
@@ -201,7 +203,7 @@ public class GameEngine {
         if (currentCharacter == null)
             return;
 
-        var mission = missionManager.generateRandomMission();
+        Mission mission = gameService.generateRandomMission();
         System.out.println("\n=== Mission Available ===");
         System.out.println(mission.getDescription());
         System.out.println("Reward: " + mission.getReward() + " gold");
@@ -209,11 +211,9 @@ public class GameEngine {
 
         String accept = getValidInput("Accept mission? (y/n): ", "[yn]");
         if (accept.equals("y")) {
-            boolean success = missionManager.attemptMission(currentCharacter, mission);
+            boolean success = gameService.attemptMission(currentCharacter, mission);
             if (success) {
                 System.out.println("Mission completed successfully!");
-                currentCharacter.addGold(mission.getReward());
-                currentCharacter.addExperience(mission.getReward() / 2);
             } else {
                 System.out.println("Mission failed. Better luck next time!");
             }
@@ -224,7 +224,7 @@ public class GameEngine {
         if (currentCharacter == null)
             return;
 
-        shop.interact(currentCharacter, scanner);
+        gameService.visitShop(currentCharacter, scanner);
     }
 
     private void saveGame() throws GameException {
@@ -233,9 +233,12 @@ public class GameEngine {
             return;
         }
 
-        database.saveCharacter(currentCharacter);
-        System.out.println("Game saved successfully!");
-        logger.info("Saved character: " + currentCharacter.getName());
+        try {
+            characterService.saveCharacter(currentCharacter);
+            System.out.println("Game saved successfully!");
+        } catch (GameException e) {
+            System.out.println("Failed to save game: " + e.getMessage());
+        }
     }
 
     private void exitGame() {
