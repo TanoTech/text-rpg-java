@@ -6,262 +6,210 @@ import com.rpg.equipment.EquipmentSlot;
 import com.rpg.equipment.items.Armor;
 import com.rpg.equipment.items.Weapon;
 import com.rpg.exceptions.DatabaseException;
-import com.rpg.exceptions.ExceptionShield;
-import com.rpg.logging.GameLogger;
 import com.rpg.repository.CharacterRepository;
 
 import java.io.IOException;
 import java.nio.file.Files;
-import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
 public class SQLiteCharacterRepository implements CharacterRepository {
-    private static final GameLogger logger = GameLogger.getInstance();
-    private static final String DATABASE_DIR = "data";
-    private static final String DATABASE_FILE = DATABASE_DIR + "/rpg_game.db";
-    private static final String BACKUP_DIR = DATABASE_DIR + "/backups";
+    private static final String DB_URL = "jdbc:sqlite:data/rpg_game.db";
+
+    private static final String CREATE_CHARACTER_TABLE = """
+            CREATE TABLE IF NOT EXISTS characters (
+                name TEXT PRIMARY KEY,
+                character_class TEXT NOT NULL,
+                level INTEGER NOT NULL,
+                health INTEGER NOT NULL,
+                base_health INTEGER NOT NULL,
+                base_attack INTEGER NOT NULL,
+                gold INTEGER NOT NULL,
+                experience INTEGER NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                last_played TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )""";
+
+    private static final String CREATE_EQUIPMENT_TABLE = """
+            CREATE TABLE IF NOT EXISTS equipment (
+                character_name TEXT NOT NULL,
+                slot TEXT NOT NULL,
+                item_name TEXT NOT NULL,
+                item_type TEXT NOT NULL,
+                value INTEGER NOT NULL,
+                attack_bonus INTEGER NOT NULL,
+                defense_bonus INTEGER NOT NULL,
+                PRIMARY KEY (character_name, slot),
+                FOREIGN KEY (character_name) REFERENCES characters(name) ON DELETE CASCADE
+            )""";
 
     static {
         try {
             Class.forName("org.sqlite.JDBC");
-            logger.info("SQLite JDBC driver loaded successfully");
         } catch (ClassNotFoundException e) {
-            logger.error("Failed to load SQLite JDBC driver", e);
             throw new RuntimeException("SQLite JDBC driver not found", e);
         }
     }
 
     public SQLiteCharacterRepository() throws DatabaseException {
-        ExceptionShield.executeDatabaseOperation(() -> {
-            createDataDirectory();
+        try {
+            createDirectories();
             initializeDatabase();
-        }, "repository initialization");
+        } catch (Exception e) {
+            throw new DatabaseException("Failed to initialize repository", e);
+        }
     }
 
-    private void createDataDirectory() throws IOException {
-        Path dataDir = Paths.get(DATABASE_DIR);
-        Path backupDir = Paths.get(BACKUP_DIR);
-
-        if (!Files.exists(dataDir)) {
-            Files.createDirectories(dataDir);
-            logger.info("Created data directory: " + DATABASE_DIR);
-        }
-
-        if (!Files.exists(backupDir)) {
-            Files.createDirectories(backupDir);
-            logger.info("Created backup directory: " + BACKUP_DIR);
-        }
+    private void createDirectories() throws IOException {
+        Files.createDirectories(Paths.get("data/backups"));
     }
 
     private void initializeDatabase() throws SQLException {
-        try (Connection conn = getConnection()) {
-            createTables(conn);
-            logger.info("Database initialized successfully");
-        }
-    }
-
-    private Connection getConnection() throws SQLException {
-        return DriverManager.getConnection("jdbc:sqlite:" + DATABASE_FILE);
-    }
-
-    private void createTables(Connection conn) throws SQLException {
-        String createCharacterTable = """
-                    CREATE TABLE IF NOT EXISTS characters (
-                        name TEXT PRIMARY KEY,
-                        character_class TEXT NOT NULL,
-                        level INTEGER NOT NULL,
-                        health INTEGER NOT NULL,
-                        max_health INTEGER NOT NULL,
-                        attack INTEGER NOT NULL,
-                        gold INTEGER NOT NULL,
-                        experience INTEGER NOT NULL,
-                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                        last_played TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                    )
-                """;
-
-        String createEquipmentTable = """
-                    CREATE TABLE IF NOT EXISTS equipment (
-                        id INTEGER PRIMARY KEY AUTOINCREMENT,
-                        character_name TEXT NOT NULL,
-                        slot TEXT NOT NULL,
-                        item_name TEXT NOT NULL,
-                        item_type TEXT NOT NULL,
-                        value INTEGER NOT NULL,
-                        attack_bonus INTEGER NOT NULL,
-                        defense_bonus INTEGER NOT NULL,
-                        FOREIGN KEY (character_name) REFERENCES characters(name) ON DELETE CASCADE,
-                        UNIQUE(character_name, slot)
-                    )
-                """;
-
-        try (Statement stmt = conn.createStatement()) {
-            stmt.execute(createCharacterTable);
-            stmt.execute(createEquipmentTable);
+        try (Connection conn = DriverManager.getConnection(DB_URL);
+                Statement stmt = conn.createStatement()) {
+            stmt.execute(CREATE_CHARACTER_TABLE);
+            stmt.execute(CREATE_EQUIPMENT_TABLE);
         }
     }
 
     @Override
     public void save(Character character) throws DatabaseException {
-        ExceptionShield.executeDatabaseOperation(() -> {
-            try (Connection conn = getConnection()) {
-                conn.setAutoCommit(false);
-                try {
-                    saveCharacterData(conn, character);
-                    saveEquipmentData(conn, character);
-                    conn.commit();
-                    logger.info("Character saved: " + character.getName());
-                } catch (Exception e) {
-                    conn.rollback();
-                    throw e;
-                }
+        try (Connection conn = DriverManager.getConnection(DB_URL)) {
+            conn.setAutoCommit(false);
+            try {
+                saveCharacter(conn, character);
+                saveEquipment(conn, character);
+                conn.commit();
+            } catch (SQLException e) {
+                conn.rollback();
+                throw e;
             }
-        }, "saving character");
+        } catch (SQLException e) {
+            throw new DatabaseException("Failed to save character: " + character.getName(), e);
+        }
     }
 
     @Override
     public Optional<Character> findByName(String name) throws DatabaseException {
-        return ExceptionShield.executeDatabaseOperationWithReturn(() -> {
-            try (Connection conn = getConnection()) {
-                Character character = loadCharacterData(conn, name);
-                if (character != null) {
-                    loadEquipmentData(conn, character);
-                    logger.info("Character loaded: " + name);
-                    return Optional.of(character);
-                }
-                return Optional.empty();
+        try (Connection conn = DriverManager.getConnection(DB_URL)) {
+            Character character = loadCharacter(conn, name);
+            if (character != null) {
+                loadEquipment(conn, character);
+                return Optional.of(character);
             }
-        }, "loading character");
+            return Optional.empty();
+        } catch (SQLException e) {
+            throw new DatabaseException("Failed to load character: " + name, e);
+        }
     }
 
     @Override
     public List<String> findAllCharacterNames() throws DatabaseException {
-        return ExceptionShield.executeDatabaseOperationWithReturn(() -> {
-            List<String> names = new ArrayList<>();
-            String selectNames = "SELECT name FROM characters ORDER BY last_played DESC";
+        List<String> names = new ArrayList<>();
+        try (Connection conn = DriverManager.getConnection(DB_URL);
+                PreparedStatement stmt = conn.prepareStatement(
+                        "SELECT name FROM characters ORDER BY last_played DESC")) {
 
-            try (Connection conn = getConnection();
-                    PreparedStatement pstmt = conn.prepareStatement(selectNames);
-                    ResultSet rs = pstmt.executeQuery()) {
-
+            try (ResultSet rs = stmt.executeQuery()) {
                 while (rs.next()) {
                     names.add(rs.getString("name"));
                 }
             }
-            return names;
-        }, "getting all character names");
+        } catch (SQLException e) {
+            throw new DatabaseException("Failed to get character names", e);
+        }
+        return names;
     }
 
     @Override
     public boolean deleteByName(String name) throws DatabaseException {
-        return ExceptionShield.executeDatabaseOperationWithReturn(() -> {
-            String deleteCharacter = "DELETE FROM characters WHERE name = ?";
+        try (Connection conn = DriverManager.getConnection(DB_URL);
+                PreparedStatement stmt = conn.prepareStatement("DELETE FROM characters WHERE name = ?")) {
 
-            try (Connection conn = getConnection();
-                    PreparedStatement pstmt = conn.prepareStatement(deleteCharacter)) {
-
-                pstmt.setString(1, name);
-                int rowsAffected = pstmt.executeUpdate();
-
-                if (rowsAffected > 0) {
-                    logger.info("Deleted character: " + name);
-                    return true;
-                } else {
-                    logger.warn("No character found with name: " + name);
-                    return false;
-                }
-            }
-        }, "deleting character");
+            stmt.setString(1, name);
+            return stmt.executeUpdate() > 0;
+        } catch (SQLException e) {
+            throw new DatabaseException("Failed to delete character: " + name, e);
+        }
     }
 
     @Override
     public boolean existsByName(String name) throws DatabaseException {
-        return ExceptionShield.executeDatabaseOperationWithReturn(() -> {
-            String selectCount = "SELECT COUNT(*) FROM characters WHERE name = ?";
+        try (Connection conn = DriverManager.getConnection(DB_URL);
+                PreparedStatement stmt = conn.prepareStatement("SELECT 1 FROM characters WHERE name = ? LIMIT 1")) {
 
-            try (Connection conn = getConnection();
-                    PreparedStatement pstmt = conn.prepareStatement(selectCount)) {
-
-                pstmt.setString(1, name);
-                try (ResultSet rs = pstmt.executeQuery()) {
-                    return rs.next() && rs.getInt(1) > 0;
-                }
+            stmt.setString(1, name);
+            try (ResultSet rs = stmt.executeQuery()) {
+                return rs.next();
             }
-        }, "checking character existence");
-    }
-
-    private void saveCharacterData(Connection conn, Character character) throws SQLException {
-        String insertOrUpdateCharacter = """
-                    INSERT OR REPLACE INTO characters
-                    (name, character_class, level, health, max_health, attack, gold, experience, last_played)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
-                """;
-
-        try (PreparedStatement pstmt = conn.prepareStatement(insertOrUpdateCharacter)) {
-            pstmt.setString(1, character.getName());
-            pstmt.setString(2, character.getCharacterClass());
-            pstmt.setInt(3, character.getLevel());
-            pstmt.setInt(4, character.getHealth());
-            pstmt.setInt(5, character.getMaxHealth());
-            pstmt.setInt(6, character.getAttack());
-            pstmt.setInt(7, character.getGold());
-            pstmt.setInt(8, character.getExperience());
-
-            pstmt.executeUpdate();
+        } catch (SQLException e) {
+            throw new DatabaseException("Failed to check character existence: " + name, e);
         }
     }
 
-    private void saveEquipmentData(Connection conn, Character character) throws SQLException {
-        String deleteEquipment = "DELETE FROM equipment WHERE character_name = ?";
-        try (PreparedStatement pstmt = conn.prepareStatement(deleteEquipment)) {
-            pstmt.setString(1, character.getName());
-            pstmt.executeUpdate();
+    private void saveCharacter(Connection conn, Character character) throws SQLException {
+        String sql = """
+                INSERT OR REPLACE INTO characters
+                (name, character_class, level, health, base_health, base_attack, gold, experience, last_played)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)""";
+
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setString(1, character.getName());
+            stmt.setString(2, character.getCharacterClass());
+            stmt.setInt(3, character.getLevel());
+            stmt.setInt(4, character.getHealth());
+            stmt.setInt(5, character.getMaxHealth() - (character.getLevel() - 1) * 10); // base health
+            stmt.setInt(6, character.getAttack() - (character.getLevel() - 1) * 2); // base attack
+            stmt.setInt(7, character.getGold());
+            stmt.setInt(8, character.getExperience());
+            stmt.executeUpdate();
+        }
+    }
+
+    private void saveEquipment(Connection conn, Character character) throws SQLException {
+        // Clear existing equipment
+        try (PreparedStatement stmt = conn.prepareStatement("DELETE FROM equipment WHERE character_name = ?")) {
+            stmt.setString(1, character.getName());
+            stmt.executeUpdate();
         }
 
-        String insertEquipment = """
-                    INSERT INTO equipment
-                    (character_name, slot, item_name, item_type, value, attack_bonus, defense_bonus)
-                    VALUES (?, ?, ?, ?, ?, ?, ?)
-                """;
+        // Insert current equipment
+        String sql = """
+                INSERT INTO equipment (character_name, slot, item_name, item_type, value, attack_bonus, defense_bonus)
+                VALUES (?, ?, ?, ?, ?, ?, ?)""";
 
-        try (PreparedStatement pstmt = conn.prepareStatement(insertEquipment)) {
-            for (Map.Entry<EquipmentSlot, Equipment> entry : character.getEquipment().entrySet()) {
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+            for (var entry : character.getEquipment().entrySet()) {
                 Equipment equipment = entry.getValue();
-
-                pstmt.setString(1, character.getName());
-                pstmt.setString(2, entry.getKey().name());
-                pstmt.setString(3, equipment.getName());
-                pstmt.setString(4, equipment.getClass().getSimpleName());
-                pstmt.setInt(5, equipment.getValue());
-                pstmt.setInt(6, equipment.getAttackBonus());
-                pstmt.setInt(7, equipment.getDefenseBonus());
-
-                pstmt.executeUpdate();
+                stmt.setString(1, character.getName());
+                stmt.setString(2, entry.getKey().name());
+                stmt.setString(3, equipment.getName());
+                stmt.setString(4, equipment.getClass().getSimpleName());
+                stmt.setInt(5, equipment.getValue());
+                stmt.setInt(6, equipment.getAttackBonus());
+                stmt.setInt(7, equipment.getDefenseBonus());
+                stmt.executeUpdate();
             }
         }
     }
 
-    private Character loadCharacterData(Connection conn, String name) throws SQLException {
-        String selectCharacter = """
-                    SELECT name, character_class, level, health, max_health, attack, gold, experience
-                    FROM characters WHERE name = ?
-                """;
+    private Character loadCharacter(Connection conn, String name) throws SQLException {
+        String sql = """
+                SELECT name, character_class, level, health, base_health, base_attack, gold, experience
+                FROM characters WHERE name = ?""";
 
-        try (PreparedStatement pstmt = conn.prepareStatement(selectCharacter)) {
-            pstmt.setString(1, name);
-
-            try (ResultSet rs = pstmt.executeQuery()) {
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setString(1, name);
+            try (ResultSet rs = stmt.executeQuery()) {
                 if (rs.next()) {
                     Character character = new Character(
                             rs.getString("name"),
                             rs.getString("character_class"),
-                            rs.getInt("max_health"),
-                            rs.getInt("attack"));
+                            rs.getInt("base_health"),
+                            rs.getInt("base_attack"));
 
                     character.setHealth(rs.getInt("health"));
                     character.addGold(rs.getInt("gold") - 100);
@@ -274,30 +222,23 @@ public class SQLiteCharacterRepository implements CharacterRepository {
         return null;
     }
 
-    private void loadEquipmentData(Connection conn, Character character) throws SQLException {
-        String selectEquipment = """
-                    SELECT slot, item_name, item_type, value, attack_bonus, defense_bonus
-                    FROM equipment WHERE character_name = ?
-                """;
+    private void loadEquipment(Connection conn, Character character) throws SQLException {
+        String sql = "SELECT slot, item_name, item_type, value, attack_bonus, defense_bonus FROM equipment WHERE character_name = ?";
 
-        try (PreparedStatement pstmt = conn.prepareStatement(selectEquipment)) {
-            pstmt.setString(1, character.getName());
-
-            try (ResultSet rs = pstmt.executeQuery()) {
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setString(1, character.getName());
+            try (ResultSet rs = stmt.executeQuery()) {
                 while (rs.next()) {
-                    EquipmentSlot slot = EquipmentSlot.fromString(rs.getString("slot"));
+                    EquipmentSlot slot = EquipmentSlot.valueOf(rs.getString("slot"));
                     String itemName = rs.getString("item_name");
                     String itemType = rs.getString("item_type");
                     int value = rs.getInt("value");
                     int attackBonus = rs.getInt("attack_bonus");
                     int defenseBonus = rs.getInt("defense_bonus");
 
-                    Equipment equipment;
-                    if ("Weapon".equalsIgnoreCase(itemType)) {
-                        equipment = new Weapon(itemName, value, attackBonus);
-                    } else {
-                        equipment = new Armor(itemName, value, defenseBonus, slot);
-                    }
+                    Equipment equipment = "Weapon".equals(itemType)
+                            ? new Weapon(itemName, value, attackBonus)
+                            : new Armor(itemName, value, defenseBonus, slot);
 
                     character.equipItem(equipment);
                 }

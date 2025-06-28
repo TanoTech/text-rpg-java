@@ -2,30 +2,25 @@ package com.rpg.character;
 
 import com.rpg.equipment.Equipment;
 import com.rpg.equipment.EquipmentSlot;
-import java.util.HashMap;
+import java.util.EnumMap;
 import java.util.Map;
 
 public class Character {
-    private String name;
-    private String characterClass;
-    private int level;
+    private final String name;
+    private final String characterClass;
+    private int level = 1;
     private int health;
-    private int maxHealth;
-    private int attack;
-    private int gold;
-    private int experience;
-    private Map<EquipmentSlot, Equipment> equipment;
+    private final int baseHealth;
+    private final int baseAttack;
+    private int gold = 100;
+    private int experience = 0;
+    private final Map<EquipmentSlot, Equipment> equipment = new EnumMap<>(EquipmentSlot.class);
 
     public Character(String name, String characterClass, int health, int attack) {
         this.name = name;
         this.characterClass = characterClass;
-        this.level = 1;
-        this.health = health;
-        this.maxHealth = health;
-        this.attack = attack;
-        this.gold = 100;
-        this.experience = 0;
-        this.equipment = new HashMap<>();
+        this.health = this.baseHealth = health;
+        this.baseAttack = attack;
     }
 
     public String getName() {
@@ -45,11 +40,11 @@ public class Character {
     }
 
     public int getMaxHealth() {
-        return maxHealth;
+        return baseHealth + (level - 1) * 10;
     }
 
     public int getAttack() {
-        return attack;
+        return baseAttack + (level - 1) * 2;
     }
 
     public int getGold() {
@@ -65,7 +60,7 @@ public class Character {
     }
 
     public void setHealth(int health) {
-        this.health = Math.max(0, Math.min(health, maxHealth));
+        this.health = Math.max(0, Math.min(health, getMaxHealth()));
     }
 
     public void addGold(int amount) {
@@ -82,19 +77,16 @@ public class Character {
 
     public void addExperience(int exp) {
         experience += exp;
-        checkLevelUp();
+        while (experience >= level * 100) {
+            levelUp();
+        }
     }
 
-    private void checkLevelUp() {
-        int expRequired = level * 100;
-        if (experience >= expRequired) {
-            level++;
-            experience -= expRequired;
-            maxHealth += 10;
-            health = maxHealth;
-            attack += 2;
-            System.out.println("Level up! You are now level " + level);
-        }
+    private void levelUp() {
+        experience -= level * 100;
+        level++;
+        health = getMaxHealth();
+        System.out.println("Level up! You are now level " + level);
     }
 
     public void equipItem(Equipment item) {
@@ -106,19 +98,13 @@ public class Character {
     }
 
     public int getTotalAttack() {
-        int total = attack;
-        for (Equipment item : equipment.values()) {
-            total += item.getAttackBonus();
-        }
-        return total;
+        return getAttack() + equipment.values().stream()
+                .mapToInt(Equipment::getAttackBonus).sum();
     }
 
     public int getTotalDefense() {
-        int total = 0;
-        for (Equipment item : equipment.values()) {
-            total += item.getDefenseBonus();
-        }
-        return total;
+        return equipment.values().stream()
+                .mapToInt(Equipment::getDefenseBonus).sum();
     }
 
     public String getDetailedInfo() {
@@ -127,7 +113,7 @@ public class Character {
         info.append("Name: ").append(name).append("\n");
         info.append("Class: ").append(characterClass).append("\n");
         info.append("Level: ").append(level).append("\n");
-        info.append("Health: ").append(health).append("/").append(maxHealth).append("\n");
+        info.append("Health: ").append(health).append("/").append(getMaxHealth()).append("\n");
         info.append("Attack: ").append(getTotalAttack()).append("\n");
         info.append("Defense: ").append(getTotalDefense()).append("\n");
         info.append("Gold: ").append(gold).append("\n");
@@ -141,7 +127,24 @@ public class Character {
                 info.append(entry.getKey()).append(": ").append(entry.getValue().getName()).append("\n");
             }
         }
-
         return info.toString();
+    }
+
+    @Override
+    public String toString() {
+        StringBuilder sb = new StringBuilder();
+        sb.append("=== ").append(name).append(" (").append(characterClass).append(") ===\n")
+                .append("Level: ").append(level).append(" | Health: ").append(health).append("/").append(getMaxHealth())
+                .append("\n")
+                .append("Attack: ").append(getTotalAttack()).append(" | Defense: ").append(getTotalDefense())
+                .append("\n")
+                .append("Gold: ").append(gold).append(" | Experience: ").append(experience).append("/")
+                .append(level * 100).append("\n");
+
+        if (!equipment.isEmpty()) {
+            sb.append("Equipment: ");
+            equipment.forEach((slot, item) -> sb.append(slot).append(":").append(item.getName()).append(" "));
+        }
+        return sb.toString();
     }
 }

@@ -1,40 +1,32 @@
 package com.rpg.service.impl;
 
 import com.rpg.character.Character;
-import com.rpg.character.CharacterFactory;
+import com.rpg.character.CharacterType;
 import com.rpg.exceptions.GameException;
-import com.rpg.logging.GameLogger;
 import com.rpg.repository.CharacterRepository;
 import com.rpg.service.CharacterService;
 
 import java.util.List;
-import java.util.Optional;
 
 public class CharacterServiceImpl implements CharacterService {
-    private static final GameLogger logger = GameLogger.getInstance();
-    private final CharacterRepository characterRepository;
-    private final CharacterFactory characterFactory;
+    private final CharacterRepository repository;
 
-    public CharacterServiceImpl(CharacterRepository characterRepository) {
-        this.characterRepository = characterRepository;
-        this.characterFactory = new CharacterFactory();
+    public CharacterServiceImpl(CharacterRepository repository) {
+        this.repository = repository;
     }
 
     @Override
     public Character createCharacter(String type, String name) throws GameException {
-        if (characterExists(name)) {
-            throw new GameException("Character with name '" + name + "' already exists");
+        if (repository.existsByName(name)) {
+            throw new GameException("Character '" + name + "' already exists");
         }
-        return characterFactory.createCharacter(type, name);
+        return CharacterType.fromString(type).create(name);
     }
 
     @Override
     public void saveCharacter(Character character) throws GameException {
-        if (character == null) {
-            throw new GameException("Cannot save null character");
-        }
-        characterRepository.save(character);
-        logger.info("Character service saved: " + character.getName());
+        if (character == null) throw new GameException("Cannot save null character");
+        repository.save(character);
     }
 
     @Override
@@ -42,14 +34,13 @@ public class CharacterServiceImpl implements CharacterService {
         if (name == null || name.trim().isEmpty()) {
             throw new GameException("Character name cannot be empty");
         }
-
-        Optional<Character> character = characterRepository.findByName(name);
-        return character.orElseThrow(() -> new GameException("Character not found: " + name));
+        return repository.findByName(name)
+            .orElseThrow(() -> new GameException("Character not found: " + name));
     }
 
     @Override
     public List<String> getAllSaves() throws GameException {
-        return characterRepository.findAllCharacterNames();
+        return repository.findAllCharacterNames();
     }
 
     @Override
@@ -57,14 +48,11 @@ public class CharacterServiceImpl implements CharacterService {
         if (name == null || name.trim().isEmpty()) {
             throw new GameException("Character name cannot be empty");
         }
-        return characterRepository.deleteByName(name);
+        return repository.deleteByName(name);
     }
 
     @Override
     public boolean characterExists(String name) throws GameException {
-        if (name == null || name.trim().isEmpty()) {
-            return false;
-        }
-        return characterRepository.existsByName(name);
+        return name != null && !name.trim().isEmpty() && repository.existsByName(name);
     }
 }
