@@ -17,7 +17,7 @@ import java.util.List;
 import java.util.Optional;
 
 public class SQLiteCharacterRepository implements CharacterRepository {
-    private static final String DB_URL = "jdbc:sqlite:data/rpg_game.db";
+    private static final String DB_URL = "jdbc:sqlite:src/main/resources/sqlite/rpg_game.db";
 
     private static final String CREATE_CHARACTER_TABLE = """
             CREATE TABLE IF NOT EXISTS characters (
@@ -64,7 +64,7 @@ public class SQLiteCharacterRepository implements CharacterRepository {
     }
 
     private void createDirectories() throws IOException {
-        Files.createDirectories(Paths.get("data/backups"));
+        Files.createDirectories(Paths.get("src/main/resources/sqlite"));
     }
 
     private void initializeDatabase() throws SQLException {
