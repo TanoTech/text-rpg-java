@@ -8,6 +8,4 @@ public interface GameService {
     Mission generateRandomMission() throws GameException;
 
     boolean attemptMission(Character character, Mission mission) throws GameException;
-
-    void visitShop(Character character, java.util.Scanner scanner) throws GameException;
 }

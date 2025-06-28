@@ -6,18 +6,13 @@ import com.rpg.logging.GameLogger;
 import com.rpg.missions.Mission;
 import com.rpg.missions.MissionManager;
 import com.rpg.service.GameService;
-import com.rpg.shop.Shop;
-
-import java.util.Scanner;
 
 public class GameServiceImpl implements GameService {
     private static final GameLogger logger = GameLogger.getInstance();
     private final MissionManager missionManager;
-    private final Shop shop;
 
     public GameServiceImpl() {
         this.missionManager = new MissionManager();
-        this.shop = new Shop();
     }
 
     @Override
@@ -47,13 +42,5 @@ public class GameServiceImpl implements GameService {
         }
 
         return success;
-    }
-
-    @Override
-    public void visitShop(Character character, Scanner scanner) throws GameException {
-        if (character == null) {
-            throw new GameException("Character cannot be null");
-        }
-        shop.interact(character, scanner);
     }
 }

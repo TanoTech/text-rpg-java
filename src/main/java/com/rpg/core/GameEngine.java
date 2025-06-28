@@ -7,6 +7,7 @@ import com.rpg.logging.GameLogger;
 import com.rpg.missions.Mission;
 import com.rpg.service.CharacterService;
 import com.rpg.service.GameService;
+import com.rpg.service.ShopService;
 import com.rpg.service.ServiceFactory;
 import com.rpg.ui.GameMenu;
 import com.rpg.validation.InputValidator;
@@ -19,6 +20,7 @@ public class GameEngine {
     private final Scanner scanner;
     private final CharacterService characterService;
     private final GameService gameService;
+    private final ShopService shopService;
     private Character currentCharacter;
     private boolean running;
 
@@ -27,6 +29,7 @@ public class GameEngine {
         ServiceFactory serviceFactory = ServiceFactory.getInstance();
         this.characterService = serviceFactory.getCharacterService();
         this.gameService = serviceFactory.getGameService();
+        this.shopService = serviceFactory.getShopService();
         this.running = false;
 
         logger.info("Game Engine initialized with services");
@@ -224,7 +227,8 @@ public class GameEngine {
         if (currentCharacter == null)
             return;
 
-        gameService.visitShop(currentCharacter, scanner);
+        // Ora usa direttamente lo ShopService invece di delegare al GameService
+        shopService.visitShop(currentCharacter, scanner);
     }
 
     private void saveGame() throws GameException {

@@ -5,11 +5,13 @@ import com.rpg.repository.CharacterRepository;
 import com.rpg.repository.impl.SQLiteCharacterRepository;
 import com.rpg.service.impl.CharacterServiceImpl;
 import com.rpg.service.impl.GameServiceImpl;
+import com.rpg.service.impl.ShopServiceImpl;
 
 public class ServiceFactory {
     private static ServiceFactory instance;
     private CharacterService characterService;
     private GameService gameService;
+    private ShopService shopService;
 
     private ServiceFactory() throws GameException {
         initializeServices();
@@ -25,6 +27,7 @@ public class ServiceFactory {
     private void initializeServices() throws GameException {
         CharacterRepository characterRepository = new SQLiteCharacterRepository();
         this.characterService = new CharacterServiceImpl(characterRepository);
+        this.shopService = new ShopServiceImpl();
         this.gameService = new GameServiceImpl();
     }
 
@@ -34,5 +37,9 @@ public class ServiceFactory {
 
     public GameService getGameService() {
         return gameService;
+    }
+
+    public ShopService getShopService() {
+        return shopService;
     }
 }
