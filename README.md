@@ -180,7 +180,7 @@ choco install openjdk17 maven sqlite
 brew install openjdk@17 maven sqlite
 ```
 
-- Build and run:
+### 2. Build and run
 
 ```bash
 mvn clean install
@@ -190,7 +190,7 @@ mvn clean install
 mvn exec:java
 ```
 
-- Test:
+### 3. Test
 
 ```bash
 mvn clean test || mvn test
