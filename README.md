@@ -20,6 +20,8 @@ L'utente può creare nuovi personaggi, scegliere la classe e ho implementato i c
 
 Ho seguito una struttura folder e naming utilizzando le best pratices attuali, utilizzando Maven per la gestione delle dipendenze, e dividendo all'interno di src la parte di codice e di testing.
 
+![gif](https://i.pinimg.com/originals/40/ba/c2/40bac21458c77a177687847ba2f95ffa.gif)
+
 ## 1. Tecnlogie usate
 
     Collections Framework: Ampio uso di EnumMap, ArrayList, LinkedHashMap (es. GameMenu, gestione equipaggiamento).
