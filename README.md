@@ -148,3 +148,52 @@ src
         Dettagli tecnici solo nei log 
 
         Nessun dato sensibile nei log
+
+## 6. Clonazione e installazione
+
+## Installation & Run
+
+**Prerequisiti**  
+
+- Java 17+
+- Maven  
+- SQLite  
+- Windows: Chocolatey  
+- macOS/Linux: Homebrew
+
+### 1. Clone
+
+```bash
+git clone https://github.com/tuo-utente/text-rpg-game.git
+cd text-rpg-game
+```
+
+Utilizzando un gestore di pacchetti relativo al sistema operativo installare i prerequisiti:
+
+- Windows:
+
+```powershell
+choco install openjdk17 maven sqlite
+```
+
+- macOS/Linux
+
+```bash
+brew install openjdk@17 maven sqlite
+```
+
+- Build and run:
+
+```bash
+mvn clean install
+```
+
+```bash
+mvn exec:java
+```
+
+- Test:
+
+```bash
+mvn clean test || mvn test
+```
