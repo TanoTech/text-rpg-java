@@ -151,8 +151,6 @@ src
 
 ## 6. Clonazione e installazione
 
-## Installation & Run
-
 **Prerequisiti**  
 
 - Java 17+
@@ -161,11 +159,11 @@ src
 - Windows: Chocolatey  
 - macOS/Linux: Homebrew
 
-### 1. Clone
+### 1. Clonazione repository
 
 ```bash
-git clone https://github.com/tuo-utente/text-rpg-game.git
-cd text-rpg-game
+git clone https://github.com/TanoTech/text-rpg-java.git
+cd text-rpg-java
 ```
 
 Utilizzando un gestore di pacchetti relativo al sistema operativo installare i prerequisiti:
